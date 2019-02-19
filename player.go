@@ -14,8 +14,7 @@ var (
 // IPlayerConn 用户
 type IPlayerConn interface {
 	LoginInput() (b []byte, err error)
-	LoginDecode(b []byte) (login interface{}, ok bool)
-	LoginAuth(login interface{}) (ok bool)
+	Login(b []byte) (login interface{}, ok bool)
 	SendManager(login interface{}, pchan chan IPlayerConn, np IPlayerConn) (ok bool)
 	SetRoom(r IRoom)
 	GetWorldID() interface{}
@@ -56,21 +55,12 @@ func (p *PlayerConn) LoginInput() (b []byte, err error) {
 }
 
 // LoginDecode ...
-func (p *PlayerConn) LoginDecode(b []byte) (login interface{}, ok bool) {
+func (p *PlayerConn) Login(b []byte) (login interface{}, ok bool) {
 
 	// p.CloseCode = 1
 	// p.CloseText = `login parse error`
 
 	return nil, true
-}
-
-// LoginAuth ...
-func (p *PlayerConn) LoginAuth(login interface{}) (ok bool) {
-
-	// p.CloseCode = 2
-	// p.CloseText = `auth fail`
-
-	return true
 }
 
 // SendManager ...
@@ -133,12 +123,7 @@ func parsePlayerConn(p IPlayerConn, b []byte, pchan chan IPlayerConn) (closeReas
 
 	closeReason = true
 
-	login, ok := p.LoginDecode(b)
-	if !ok {
-		return
-	}
-
-	ok = p.LoginAuth(login)
+	login, ok := p.Login(b)
 	if !ok {
 		return
 	}

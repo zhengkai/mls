@@ -225,6 +225,10 @@ func (r *Room) cmdMsg(c *roomCmd) {
 // SendMsg 给玩家发信息
 func (r *Room) SendMsg(msg []byte, playerID ...interface{}) {
 
+	if len(r.player) == 0 {
+		return
+	}
+
 	pm, _ := websocket.NewPreparedMessage(websocket.BinaryMessage, msg)
 
 	// 按指定 id 列表发

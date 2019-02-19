@@ -1,13 +1,13 @@
-package mls
+package rome
 
 // Manager ...
-func Manager(playerChan chan IPlayer, getWorld func(id interface{}) IWorld) {
+func Manager(playerChan chan IPlayerConn, getWorld func(id interface{}) IWorld) {
 
 	for {
 		p := <-playerChan
 
 		w := getWorld(p.GetWorldID())
 
-		go w.PlayerAdd(p)
+		go w.PlayerConn(p)
 	}
 }

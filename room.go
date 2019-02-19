@@ -1,4 +1,4 @@
-package mls
+package rome
 
 import (
 	"sync"
@@ -9,9 +9,9 @@ import (
 
 // IRoom ...
 type IRoom interface {
-	PlayerAdd(p IPlayer)
-	PlayerMsg(p IPlayer, msg interface{})
-	PlayerExit(p IPlayer)
+	PlayerConn(p IPlayerConn)
+	PlayerMsg(p IPlayerConn, msg interface{})
+	PlayerExit(p IPlayerConn)
 	SendMsg(msg []byte, playerID ...interface{})
 	GetTickDuration() (d time.Duration)
 	Start(tick time.Duration)
@@ -25,7 +25,7 @@ type roomCmdType uint8
 type Room struct {
 	World     IWorld
 	recv      ifRecvChan
-	player    map[interface{}]IPlayer
+	player    map[interface{}]IPlayerConn
 	isStop    bool
 	idleCount int
 	tick      *time.Ticker
@@ -47,9 +47,9 @@ const (
 type ifRecvChan chan *roomCmd
 
 type roomCmd struct {
-	t      roomCmdType
-	Player IPlayer
-	Msg    interface{}
+	t          roomCmdType
+	PlayerConn IPlayerConn
+	Msg        interface{}
 }
 
 // InitRoom 启动 room
@@ -86,34 +86,34 @@ func GetRoom(id interface{}, w IWorld, r IRoom) IRoom {
 // Init ...
 func (r *Room) Init() {
 	r.recv = make(ifRecvChan, 1000)
-	r.player = make(map[interface{}]IPlayer)
+	r.player = make(map[interface{}]IPlayerConn)
 }
 
-// PlayerAdd ...
-func (r *Room) PlayerAdd(p IPlayer) {
+// PlayerConn ...
+func (r *Room) PlayerConn(p IPlayerConn) {
 
 	r.recv <- &roomCmd{
-		t:      roomCmdNew,
-		Player: p,
+		t:          roomCmdNew,
+		PlayerConn: p,
 	}
 
 	p.SetRoom(r)
 }
 
 // PlayerMsg ...
-func (r *Room) PlayerMsg(p IPlayer, msg interface{}) {
+func (r *Room) PlayerMsg(p IPlayerConn, msg interface{}) {
 	r.recv <- &roomCmd{
-		t:      roomCmdMsg,
-		Player: p,
-		Msg:    msg,
+		t:          roomCmdMsg,
+		PlayerConn: p,
+		Msg:        msg,
 	}
 }
 
 // PlayerExit ...
-func (r *Room) PlayerExit(p IPlayer) {
+func (r *Room) PlayerExit(p IPlayerConn) {
 	r.recv <- &roomCmd{
-		t:      roomCmdExit,
-		Player: p,
+		t:          roomCmdExit,
+		PlayerConn: p,
 	}
 }
 
@@ -173,7 +173,7 @@ func (r *Room) Stop() {
 
 func (r *Room) cmdNew(c *roomCmd) {
 
-	pid := c.Player.GetID()
+	pid := c.PlayerConn.GetID()
 
 	old, oldOK := r.player[pid]
 	if oldOK {
@@ -185,32 +185,32 @@ func (r *Room) cmdNew(c *roomCmd) {
 		return
 	}
 
-	r.player[pid] = c.Player
+	r.player[pid] = c.PlayerConn
 
-	c.Player.SendDeamon()
+	c.PlayerConn.SendDeamon()
 
 	if !oldOK {
-		r.World.Player(c.Player, true)
+		r.World.Player(c.PlayerConn, true)
 	}
 }
 
 func (r *Room) cmdExit(c *roomCmd) {
 
-	pid := c.Player.GetID()
+	pid := c.PlayerConn.GetID()
 
 	p, ok := r.player[pid]
 	if !ok {
 		return
 	}
 
-	if p != c.Player {
+	if p != c.PlayerConn {
 		return
 	}
 
 	delete(r.player, pid)
 	p.Close()
 
-	r.World.Player(c.Player, false)
+	r.World.Player(c.PlayerConn, false)
 }
 
 func (r *Room) cmdMsg(c *roomCmd) {
@@ -219,7 +219,7 @@ func (r *Room) cmdMsg(c *roomCmd) {
 		return
 	}
 
-	r.World.Input(c.Player, c.Msg)
+	r.World.Input(c.PlayerConn, c.Msg)
 }
 
 // SendMsg 给玩家发信息

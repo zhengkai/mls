@@ -1,4 +1,4 @@
-package mls
+package rome
 
 import (
 	"sync/atomic"
@@ -11,17 +11,17 @@ var (
 	playerAutoID uint64
 )
 
-// IPlayer 用户
-type IPlayer interface {
+// IPlayerConn 用户
+type IPlayerConn interface {
 	LoginInput() (b []byte, err error)
 	LoginDecode(b []byte) (login interface{}, ok bool)
 	LoginAuth(login interface{}) (ok bool)
-	SendManager(login interface{}, pchan chan IPlayer, np IPlayer) (ok bool)
+	SendManager(login interface{}, pchan chan IPlayerConn, np IPlayerConn) (ok bool)
 	SetRoom(r IRoom)
 	GetWorldID() interface{}
 	GetID() interface{}
 	SendDeamon()
-	ReadDeamon(cp IPlayer)
+	ReadDeamon(cp IPlayerConn)
 	ParseMessage(b []byte) (msg interface{}, ok bool)
 	Send(b []byte)
 	SendStop(b []byte)
@@ -29,34 +29,34 @@ type IPlayer interface {
 	Close()
 }
 
-// Player ...
-type Player struct {
+// PlayerConn ...
+type PlayerConn struct {
 	ID      interface{}
 	WS      *websocket.Conn
 	room    IRoom
 	confirm chan bool
 	isClose bool
-	send    chan *PlayerMsg
+	send    chan *PlayerConnMsg
 
 	CloseCode int
 	CloseText string
 }
 
-// PlayerMsg ...
-type PlayerMsg struct {
+// PlayerConnMsg ...
+type PlayerConnMsg struct {
 	Content interface{}
 	Stop    bool
 }
 
 // LoginInput ...
-func (p *Player) LoginInput() (b []byte, err error) {
+func (p *PlayerConn) LoginInput() (b []byte, err error) {
 	p.WS.SetReadDeadline(time.Now().Add(21 * time.Second))
 	_, b, err = p.WS.ReadMessage()
 	return
 }
 
 // LoginDecode ...
-func (p *Player) LoginDecode(b []byte) (login interface{}, ok bool) {
+func (p *PlayerConn) LoginDecode(b []byte) (login interface{}, ok bool) {
 
 	// p.CloseCode = 1
 	// p.CloseText = `login parse error`
@@ -65,7 +65,7 @@ func (p *Player) LoginDecode(b []byte) (login interface{}, ok bool) {
 }
 
 // LoginAuth ...
-func (p *Player) LoginAuth(login interface{}) (ok bool) {
+func (p *PlayerConn) LoginAuth(login interface{}) (ok bool) {
 
 	// p.CloseCode = 2
 	// p.CloseText = `auth fail`
@@ -74,7 +74,7 @@ func (p *Player) LoginAuth(login interface{}) (ok bool) {
 }
 
 // SendManager ...
-func (p *Player) SendManager(login interface{}, pchan chan IPlayer, np IPlayer) (ok bool) {
+func (p *PlayerConn) SendManager(login interface{}, pchan chan IPlayerConn, np IPlayerConn) (ok bool) {
 
 	p.confirm = make(chan bool)
 
@@ -88,14 +88,14 @@ func (p *Player) SendManager(login interface{}, pchan chan IPlayer, np IPlayer) 
 }
 
 // SetRoom ...
-func (p *Player) SetRoom(r IRoom) {
+func (p *PlayerConn) SetRoom(r IRoom) {
 	ok := r != nil
 	p.room = r
 	p.confirm <- ok
 }
 
 // Close ...
-func (p *Player) Close() {
+func (p *PlayerConn) Close() {
 
 	if p.isClose {
 		return
@@ -115,21 +115,21 @@ func (p *Player) Close() {
 	}
 }
 
-// ParsePlayer 处理通过 ws 连接过来的用户
-func ParsePlayer(p IPlayer, pchan chan IPlayer) {
+// ParsePlayerConn 处理通过 ws 连接过来的用户
+func ParsePlayerConn(p IPlayerConn, pchan chan IPlayerConn) {
 	b, err := p.LoginInput()
 	if err != nil {
 		return
 	}
 
-	closeReason := parsePlayer(p, b, pchan)
+	closeReason := parsePlayerConn(p, b, pchan)
 
 	if closeReason {
 		p.Close()
 	}
 }
 
-func parsePlayer(p IPlayer, b []byte, pchan chan IPlayer) (closeReason bool) {
+func parsePlayerConn(p IPlayerConn, b []byte, pchan chan IPlayerConn) (closeReason bool) {
 
 	closeReason = true
 
@@ -156,30 +156,30 @@ func parsePlayer(p IPlayer, b []byte, pchan chan IPlayer) (closeReason bool) {
 }
 
 // Send 给客户端发消息
-func (p *Player) Send(b []byte) {
-	p.send <- &PlayerMsg{
+func (p *PlayerConn) Send(b []byte) {
+	p.send <- &PlayerConnMsg{
 		Content: b,
 	}
 }
 
 // SendStop 给客户端发消息，并关闭连接
-func (p *Player) SendStop(b []byte) {
-	p.send <- &PlayerMsg{
+func (p *PlayerConn) SendStop(b []byte) {
+	p.send <- &PlayerConnMsg{
 		Content: b,
 		Stop:    true,
 	}
 }
 
 // SendBroadcast 群发消息专用，
-func (p *Player) SendBroadcast(pm *websocket.PreparedMessage, stop bool) {
-	p.send <- &PlayerMsg{
+func (p *PlayerConn) SendBroadcast(pm *websocket.PreparedMessage, stop bool) {
+	p.send <- &PlayerConnMsg{
 		Content: pm,
 		Stop:    stop,
 	}
 }
 
 // ReadDeamon ...
-func (p *Player) ReadDeamon(cp IPlayer) {
+func (p *PlayerConn) ReadDeamon(cp IPlayerConn) {
 
 	var err error
 	var ab []byte
@@ -207,17 +207,17 @@ func (p *Player) ReadDeamon(cp IPlayer) {
 }
 
 // ParseMessage ...
-func (p *Player) ParseMessage(b []byte) (msg interface{}, ok bool) {
+func (p *PlayerConn) ParseMessage(b []byte) (msg interface{}, ok bool) {
 	return string(b), true
 }
 
 // GetWorldID ...
-func (p *Player) GetWorldID() interface{} {
+func (p *PlayerConn) GetWorldID() interface{} {
 	return 1
 }
 
 // GetID ...
-func (p *Player) GetID() interface{} {
+func (p *PlayerConn) GetID() interface{} {
 
 	if p.ID != nil {
 		return p.ID
@@ -229,14 +229,14 @@ func (p *Player) GetID() interface{} {
 }
 
 // SendDeamon ...
-func (p *Player) SendDeamon() {
+func (p *PlayerConn) SendDeamon() {
 
-	p.send = make(chan *PlayerMsg, 1000)
+	p.send = make(chan *PlayerConnMsg, 1000)
 
 	go p.sendDeamon()
 }
 
-func (p *Player) sendDeamon() {
+func (p *PlayerConn) sendDeamon() {
 
 	for {
 		send, ok := <-p.send

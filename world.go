@@ -1,10 +1,10 @@
-package mls
+package rome
 
 // IWorld ...
 type IWorld interface {
-	Player(p IPlayer, status bool)
-	Input(p IPlayer, msg interface{})
-	PlayerAdd(p IPlayer)
+	Player(p IPlayerConn, status bool)
+	Input(p IPlayerConn, msg interface{})
+	PlayerConn(p IPlayerConn)
 	Tick(i int) (ok bool)
 }
 
@@ -26,17 +26,17 @@ func GetWorld(id interface{}) IWorld {
 	return nw
 }
 
-// PlayerAdd ...
-func (w *World) PlayerAdd(p IPlayer) {
-	w.Room.PlayerAdd(p)
+// PlayerConn ...
+func (w *World) PlayerConn(p IPlayerConn) {
+	w.Room.PlayerConn(p)
 }
 
 // Player 状态更新
-func (w *World) Player(p IPlayer, status bool) {
+func (w *World) Player(p IPlayerConn, status bool) {
 }
 
 // Input 玩家输入
-func (w *World) Input(p IPlayer, msg interface{}) {
+func (w *World) Input(p IPlayerConn, msg interface{}) {
 }
 
 // Tick ...

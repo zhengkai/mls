@@ -14,8 +14,8 @@ var (
 // IPlayerConn 用户
 type IPlayerConn interface {
 	LoginInput() (b []byte, err error)
-	Login(b []byte) (login interface{}, ok bool)
-	SendManager(login interface{}, pchan chan IPlayerConn, np IPlayerConn) (ok bool)
+	Login(b []byte) (ok bool)
+	SendManager(pchan chan IPlayerConn, np IPlayerConn) (ok bool)
 	SetRoom(r IRoom)
 	GetWorldID() interface{}
 	GetID() interface{}
@@ -55,16 +55,16 @@ func (p *PlayerConn) LoginInput() (b []byte, err error) {
 }
 
 // LoginDecode ...
-func (p *PlayerConn) Login(b []byte) (login interface{}, ok bool) {
+func (p *PlayerConn) Login(b []byte) (ok bool) {
 
 	// p.CloseCode = 1
 	// p.CloseText = `login parse error`
 
-	return nil, true
+	return true
 }
 
 // SendManager ...
-func (p *PlayerConn) SendManager(login interface{}, pchan chan IPlayerConn, np IPlayerConn) (ok bool) {
+func (p *PlayerConn) SendManager(pchan chan IPlayerConn, np IPlayerConn) (ok bool) {
 
 	p.confirm = make(chan bool)
 
@@ -107,6 +107,7 @@ func (p *PlayerConn) Close() {
 
 // ParsePlayerConn 处理通过 ws 连接过来的用户
 func ParsePlayerConn(p IPlayerConn, pchan chan IPlayerConn) {
+
 	b, err := p.LoginInput()
 	if err != nil {
 		return
@@ -123,14 +124,14 @@ func parsePlayerConn(p IPlayerConn, b []byte, pchan chan IPlayerConn) (closeReas
 
 	closeReason = true
 
-	login, ok := p.Login(b)
+	ok := p.Login(b)
 	if !ok {
 		return
 	}
 
 	closeReason = false
 
-	ok = p.SendManager(login, pchan, p)
+	ok = p.SendManager(pchan, p)
 	if !ok {
 		return
 	}

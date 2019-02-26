@@ -62,27 +62,6 @@ func InitRoom(r IRoom) {
 	}()
 }
 
-// GetRoom ...
-func GetRoom(id interface{}, w IWorld, r IRoom) IRoom {
-
-	load, ok := roomMap.Load(id)
-	if ok {
-		return load.(IRoom)
-	}
-
-	r.Init()
-
-	roomMap.Store(id, r)
-
-	go func() {
-		r.Start(r.GetTickDuration())
-		roomMap.Delete(id)
-		r.Stop()
-	}()
-
-	return r
-}
-
 // Init ...
 func (r *Room) Init() {
 	r.recv = make(ifRecvChan, 1000)

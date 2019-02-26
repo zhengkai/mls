@@ -28,6 +28,7 @@ func GetWorld(id interface{}) IWorld {
 
 // PlayerConn ...
 func (w *World) PlayerConn(p IPlayerConn) {
+
 	w.Room.PlayerConn(p)
 }
 

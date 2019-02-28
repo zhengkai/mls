@@ -1,6 +1,7 @@
 package rome
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -58,7 +59,6 @@ func InitRoom(r IRoom) {
 	r.Init()
 	go func() {
 		r.Start(r.GetTickDuration())
-		r.Stop()
 	}()
 }
 
@@ -106,6 +106,17 @@ func (r *Room) Start(tick time.Duration) {
 		if !ok || r.isStop {
 			break
 		}
+	}
+	r.isStop = true
+	r.tick.Stop()
+	r.close()
+}
+
+func (r *Room) close() {
+	fmt.Println(`room close`)
+	for k, v := range r.player {
+		delete(r.player, k)
+		v.Close()
 	}
 }
 
